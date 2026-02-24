@@ -1319,12 +1319,12 @@ text_sensor:
           "DCDC (Battery) over current",                             // 0000 0000 0000 0000 0000 1000 0000 0000 (12)
           "Inverter over current or surge",                          // 0000 0000 0000 0000 0001 0000 0000 0000 (13)
           "Bus voltage is too low",                                  // 0000 0000 0000 0000 0010 0000 0000 0000 (14)
-          "Inverter failed (Self-checking),                          // 0000 0000 0000 0000 0100 0000 0000 0000 (15)
+          "Inverter failed (Self-checking)",                         // 0000 0000 0000 0000 0100 0000 0000 0000 (15)
           "Inverted DC component is too high (from protocol)",       // 0000 0000 0000 0000 1000 0000 0000 0000 (16)
           "Reserve (Bit 17)",                                        // 0000 0000 0000 0001 0000 0000 0000 0000 (17)
           "Op current offset is too high",                           // 0000 0000 0000 0010 0000 0000 0000 0000 (18)
           "Inverter current offset is too high",                     // 0000 0000 0000 0100 0000 0000 0000 0000 (19)
-          "DC/DC current offset is too high                          // 0000 0000 0000 1000 0000 0000 0000 0000 (20)
+          "DC/DC current offset is too high",                        // 0000 0000 0000 1000 0000 0000 0000 0000 (20)
           "PV current offset is too high",                           // 0000 0000 0001 0000 0000 0000 0000 0000 (21)
           "Output voltage is too low",                               // 0000 0000 0010 0000 0000 0000 0000 0000 (22)
           "Inverter negative power",                                 // 0000 0000 0100 0000 0000 0000 0000 0000 (23)
@@ -1420,6 +1420,3 @@ text_sensor:
         case 6: return std::string("Fault");
       }
       return std::string("Unknown");
-
-
-
