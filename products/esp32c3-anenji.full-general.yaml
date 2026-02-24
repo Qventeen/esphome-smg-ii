@@ -616,7 +616,7 @@ number:
   # Output voltage                                                0.1V    Uint  320 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} output voltage"
+    name: "${name} 320 output voltage"
     use_write_multiple: true
     address: 320
     register_type: holding
@@ -634,7 +634,7 @@ number:
   # Output frequency setting                                      0.01Hz  Uint  321 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} output frequency setting"
+    name: "${name} 321 output frequency setting"
     use_write_multiple: true
     address: 321
     register_type: holding
@@ -653,7 +653,7 @@ number:
   # Range: ( B + 1v * J ) ~ 16.5v * J
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} battery overvoltage protection point"
+    name: "${name} 323 battery overvoltage protection point"
     use_write_multiple: true
     address: 323
     register_type: holding
@@ -672,7 +672,7 @@ number:
   # Range: C ~ ( A - 1v)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} max charging voltage"
+    name: "${name} 324 max charging voltage"
     use_write_multiple: true
     address: 324
     register_type: holding
@@ -691,7 +691,7 @@ number:
   # Range: (12v * J ) ~ B
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} floating charging voltage"
+    name: "${name} 325 floating charging voltage"
     use_write_multiple: true
     address: 325
     register_type: holding
@@ -709,7 +709,7 @@ number:
   # Battery discharge recovery point in mains mode                0.1V    Uint  326 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} battery discharge recovery point in mains mode"
+    name: "${name} 326 battery discharge recovery point in mains mode"
     use_write_multiple: true
     address: 326
     register_type: holding
@@ -1303,38 +1303,34 @@ text_sensor:
     raw_encode: HEXBYTES
     icon: mdi:alert-circle
     lambda: |-
-      static const uint8_t FAULTS_SIZE = 29;
+      static const uint8_t FAULTS_SIZE = 24;
       static const char *const FAULTS[FAULTS_SIZE] = {
-          "Over temperature of inverter module",                     // 0000 0000 0000 0000 0000 0000 0000 0001 (1)
-          "Over temperature of PV module",                           // 0000 0000 0000 0000 0000 0000 0000 0010 (2)
-          "Over temperature of DCDC module",                         // 0000 0000 0000 0000 0000 0000 0000 0100 (3)
-          "Battery over voltage",                                    // 0000 0000 0000 0000 0000 0000 0000 1000 (4)
-          "PV module over temperature",                              // 0000 0000 0000 0000 0000 0000 0001 0000 (5)
-          "Output short circuit",                                    // 0000 0000 0000 0000 0000 0000 0010 0000 (6)
-          "Inverter over voltage",                                   // 0000 0000 0000 0000 0000 0000 0100 0000 (7)
-          "Output over load",                                        // 0000 0000 0000 0000 0000 0000 1000 0000 (8)
-          "Bus over voltage",                                        // 0000 0000 0000 0000 0000 0001 0000 0000 (9)
-          "Bus soft start timed out",                                // 0000 0000 0000 0000 0000 0010 0000 0000 (10)
-          "PV over current",                                         // 0000 0000 0000 0000 0000 0100 0000 0000 (11)
-          "PV over voltage",                                         // 0000 0000 0000 0000 0000 1000 0000 0000 (12)
-          "Battery over current",                                    // 0000 0000 0000 0000 0001 0000 0000 0000 (13)
-          "Inverter over current",                                   // 0000 0000 0000 0000 0010 0000 0000 0000 (14)
-          "Bus low voltage",                                         // 0000 0000 0000 0000 0100 0000 0000 0000 (15)
-          "Reserve (Bit 15)",                                        // 0000 0000 0000 0000 1000 0000 0000 0000 (16)
-          "Inverter DC component is too high",                       // 0000 0000 0000 0001 0000 0000 0000 0000 (17)
-          "Reserve (Bit 17)",                                        // 0000 0000 0000 0010 0000 0000 0000 0000 (18)
-          "The zero bias of output current is too large",            // 0000 0000 0000 0100 0000 0000 0000 0000 (19)
-          "The zero bias of inverter current is too large",          // 0000 0000 0000 1000 0000 0000 0000 0000 (20)
-          "The zero bias of battery current is too large",           // 0000 0000 0001 0000 0000 0000 0000 0000 (21)
-          "The zero bias of PV current is too large",                // 0000 0000 0010 0000 0000 0000 0000 0000 (22)
-          "Inverter low voltage",                                    // 0000 0000 0100 0000 0000 0000 0000 0000 (23)
-          "Inverter negative power protection",                      // 0000 0000 1000 0000 0000 0000 0000 0000 (24)
-          "The host in the parallel system is lost",                 // 0000 0001 0000 0000 0000 0000 0000 0000 (25)
-          "Synchronization signal abnormal in the parallel system",  // 0000 0010 0000 0000 0000 0000 0000 0000 (26)
-          "The battery type is incompatible",                        // 0000 0100 0000 0000 0000 0000 0000 0000 (27)
-          "Parallel versions are incompatible",                      // 0000 1000 0000 0000 0000 0000 0000 0000 (28)
-          "External CT setup duplication",                           // 0001 0000 0000 0000 0000 0000 0000 0000 (29)
+          "Over temperature of inverter module",                     // 0000 0000 0000 0000 0000 0000 0000 0001 (01)
+          "Over temperature of DCDC module",                         // 0000 0000 0000 0000 0000 0000 0000 0010 (02)
+          "Battery voltage to high",                                 // 0000 0000 0000 0000 0000 0000 0000 0100 (03)
+          "Over temperature of PV module",                           // 0000 0000 0000 0000 0000 0000 0000 1000 (04)
+          "Output short circuit",                                    // 0000 0000 0000 0000 0000 0000 0001 0000 (05)
+          "Output voltage is too high"                               // 0000 0000 0000 0000 0000 0000 0010 0000 (06)
+          "Overload time out",                                       // 0000 0000 0000 0000 0000 0000 0100 0000 (07)
+          "Bus voltage is too high",                                 // 0000 0000 0000 0000 0000 0000 1000 0000 (08)
+          "Bus soft start failed",                                   // 0000 0000 0000 0000 0000 0001 0000 0000 (09)
+          "PV over current",                                         // 0000 0000 0000 0000 0000 0010 0000 0000 (10)
+          "PV over voltage",                                         // 0000 0000 0000 0000 0000 0100 0000 0000 (11)
+          "DCDC (Battery) over current",                             // 0000 0000 0000 0000 0000 1000 0000 0000 (12)
+          "Inverter over current or surge",                          // 0000 0000 0000 0000 0001 0000 0000 0000 (13)
+          "Bus voltage is too low",                                  // 0000 0000 0000 0000 0010 0000 0000 0000 (14)
+          "Inverter failed (Self-checking),                          // 0000 0000 0000 0000 0100 0000 0000 0000 (15)
+          "Inverted DC component is too high (from protocol)",       // 0000 0000 0000 0000 1000 0000 0000 0000 (16)
+          "Reserve (Bit 17)",                                        // 0000 0000 0000 0001 0000 0000 0000 0000 (17)
+          "Op current offset is too high",                           // 0000 0000 0000 0010 0000 0000 0000 0000 (18)
+          "Inverter current offset is too high",                     // 0000 0000 0000 0100 0000 0000 0000 0000 (19)
+          "DC/DC current offset is too high                          // 0000 0000 0000 1000 0000 0000 0000 0000 (20)
+          "PV current offset is too high",                           // 0000 0000 0001 0000 0000 0000 0000 0000 (21)
+          "Output voltage is too low",                               // 0000 0000 0010 0000 0000 0000 0000 0000 (22)
+          "Inverter negative power",                                 // 0000 0000 0100 0000 0000 0000 0000 0000 (23)
+          "Op2 current offset is too high",                          // 0000 0000 1000 0000 0000 0000 0000 0000 (24)
       };
+
       std::string values = "";
 
       uint32_t mask = modbus_controller::dword_from_hex_str(x, 0);
