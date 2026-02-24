@@ -613,10 +613,10 @@ sensor:
   #   accuracy_decimals: 0
 
 number:
-  # Output voltage                                                0.1V    Uint  320 1 R/W
+  # Output voltage                                               0.1V    Uint  320 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 320 output voltage"
+    name: "${name} 08 320 output voltage" #TODO: change to select 220 230 240
     use_write_multiple: true
     address: 320
     register_type: holding
@@ -634,7 +634,7 @@ number:
   # Output frequency setting                                      0.01Hz  Uint  321 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 321 output frequency setting"
+    name: "${name} 09 321 output frequency setting" #TODO: change to select 50 60
     use_write_multiple: true
     address: 321
     register_type: holding
@@ -672,13 +672,13 @@ number:
   # Range: C ~ ( A - 1v)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 324 max charging voltage"
+    name: "${name} 26 324 bulk charging voltage"
     use_write_multiple: true
     address: 324
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    max_value: 100.0
+    min_value: 48.0 #27.0
+    max_value: 56.4 #58.0
     step: 0.1
     unit_of_measurement: "V"
     entity_category: config
@@ -691,13 +691,13 @@ number:
   # Range: (12v * J ) ~ B
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 325 floating charging voltage"
+    name: "${name} 27 325 floating charging voltage"
     use_write_multiple: true
     address: 325
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    # max_value: 100.0
+    min_value: 53.3 #48.0 | real 53.3 less floating don't starts
+    max_value: 55.5 #program 26 | my bulk charge 55.5
     step: 0.1
     unit_of_measurement: "V"
     entity_category: config
@@ -709,13 +709,13 @@ number:
   # Battery discharge recovery point in mains mode                0.1V    Uint  326 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 326 battery discharge recovery point in mains mode"
+    name: "${name} 12 326 battery discharge recovery point in mains mode"
     use_write_multiple: true
     address: 326
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    # max_value: 100.0
+    min_value: 52.5 # program 31 (now 52.4 + 0.1)
+    max_value: 52.9 # program 13 (now 53.0 - 0.1
     step: 0.1
     unit_of_measurement: "V"
     entity_category: config
@@ -727,12 +727,12 @@ number:
   # Battery low voltage protection point in mains mode            0.1V    Uint  327 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} battery low voltage protection point in mains mode"
+    name: "${name} 327 battery low voltage protection point in mains mode" #TODO: Setup menu number
     use_write_multiple: true
     address: 327
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
+    min_value: 0.0                #TODO: check and setup this params 
     # max_value: 100.0
     step: 0.1
     unit_of_measurement: "V"
@@ -745,12 +745,12 @@ number:
   # Battery low voltage protection point in off-grid mode          0.1V           Uint  329 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} battery low voltage protection point in off-grid mode"
+    name: "${name} 329 battery low voltage protection point in off-grid mode" #TODO: Setup menu number
     use_write_multiple: true
     address: 329
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
+    min_value: 0.0                #TODO: check and setup this params 
     # max_value: 100.0
     step: 0.1
     unit_of_measurement: "V"
@@ -763,14 +763,14 @@ number:
   # Maximum charging current                                      0.1A    Uint  332 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} maximum charging current"
+    name: "${name} 02 332 maximum charging current" #PV+Utility
     use_write_multiple: true
     address: 332
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    max_value: 120.0
-    step: 0.1
+    min_value: 20.0  #program 05 (now 20A| min 5A)
+    max_value: 100.0 #max PV+Utility
+    step: 1
     unit_of_measurement: "A"
     entity_category: config
     icon: mdi:current-dc
@@ -781,14 +781,14 @@ number:
   # Maximum mains charging current                                0.1A    Uint  333 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} maximum mains charging current"
+    name: "${name} 05 333 maximum mains charging current"
     use_write_multiple: true
     address: 333
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    max_value: 80.0
-    step: 0.1
+    min_value: 5.0   #min utility 5.0
+    max_value: 60.0  #program 02 || < max 60.0
+    step: 1
     unit_of_measurement: "A"
     entity_category: config
     icon: mdi:battery-charging
@@ -799,13 +799,13 @@ number:
   # Eq Charging voltage                                           0.1V    Uint  334 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Eq Charging voltage"
+    name: "${name} 34 334 Eq Charging voltage"
     use_write_multiple: true
     address: 334
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
-    max_value: 100.0
+    min_value: 53.6   #program 27 floating
+    max_value: 56.0   #max 62 TODO: setup to program 26 = 55.5
     step: 0.1
     unit_of_measurement: "V"
     entity_category: config
@@ -822,7 +822,7 @@ number:
     address: 335
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
+    min_value: 0.0    #default 60min
     max_value: 900.0
     step: 1
     unit_of_measurement: "min"
@@ -832,12 +832,12 @@ number:
   # Equalization Timeout exit                                     min     Uint  336 1 R/W Range: 0~900
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} equalization Timeout exit"
+    name: "${name} 36 336 equalization Timeout exit"
     use_write_multiple: true
     address: 336
     register_type: holding
     value_type: U_WORD
-    min_value: 0.0
+    min_value: 0.0    #default 120min
     max_value: 900.0
     step: 1
     unit_of_measurement: "min"
@@ -847,7 +847,7 @@ number:
   # Two equalization charging intervals                           day     Uint  337 1 R/W Range: 1~90
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} two equalization charging intervals"
+    name: "${name} 37 337 two equalization charging intervals"
     use_write_multiple: true
     address: 337
     register_type: holding
@@ -862,7 +862,7 @@ number:
   # Battery discharge SOC protection value in AC mode [K]           1%    Uint   341 1 R/W Range: 20%~50%
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Battery discharge SOC protection value in AC mode [K]"
+    name: "${name} 12 li 341 Battery discharge SOC protection value in AC mode [K]"
     use_write_multiple: true
     address: 341
     register_type: holding
@@ -877,7 +877,7 @@ number:
   # Battery discharge SOC recovery value in AC mode                  1%    Uint   342 1 R/W Range: 60%~100%
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Battery discharge SOC recovery value in AC mode"
+    name: "${name} 13 li 342 Battery discharge SOC recovery value in AC mode"
     use_write_multiple: true
     address: 342
     register_type: holding
@@ -892,7 +892,7 @@ number:
   # Off-grid mode battery discharge SOC protection value              1%    Uint   343 1 R/W Range: 3%~Min( K , 30%)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Off-grid mode battery discharge SOC protection value"
+    name: "${name} 343 Off-grid mode battery discharge SOC protection value"
     use_write_multiple: true
     address: 343
     register_type: holding
@@ -907,13 +907,13 @@ number:
   # PV grid-connected maximum power                                    1w    Uint   344 1 R/W Range: 200w~ rated power
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} PV grid-connected maximum power"
+    name: "${name} 344 PV grid-connected maximum power"
     use_write_multiple: true
     address: 344
     register_type: holding
     value_type: U_WORD
     min_value: 0
-    max_value: 5000
+    max_value: 5000     #TODO: Check this values
     step: 1
     device_class: power
     unit_of_measurement: "W"
@@ -937,12 +937,12 @@ number:
   # Maximum discharge current protection                                1A    Uint   351 1 R/W Maximum discharge current protection value in stand-alone mode
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} maximum discharge current protection"
+    name: "${name} 46 351 maximum discharge current protection"
     use_write_multiple: true
     address: 351
     register_type: holding
     value_type: U_WORD
-    min_value: 50.0
+    min_value: 20.0   #now 50A | this is alert protection only 
     max_value: 500.0
     step: 1
     device_class: current
@@ -953,7 +953,7 @@ number:
   # AC delay after apearing Grid (hidden feature)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 355 AC delay"
+    name: "${name} 01hidden 355 AC delay"
     use_write_multiple: true
     address: 355
     register_type: holding
