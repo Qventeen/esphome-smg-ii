@@ -191,7 +191,7 @@ sensor:
   # Average mains power                                  1W       Int   204 1 R
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Average mains power" # AC power
+    name: "${name} Grid power" # AC power
     address: 204
     register_type: holding
     value_type: S_WORD
@@ -245,7 +245,7 @@ sensor:
   # Average inverter power                1W    Int   208 1 R Positive numbers indicate inverter output, negative numbers indicate inverter input
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Inverter power" # AC power
+    name: "${name} Inverter power"
     address: 208
     register_type: holding
     value_type: S_WORD
@@ -783,68 +783,72 @@ number:
     write_lambda: |-
       return x * 10.0f;
 
+  # Equalization section
+  ###########################################
+  
   # Eq Charging voltage                                           0.1V    Uint  334 1 R/W
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} 34 Eq charging voltage"
-    use_write_multiple: true
-    address: 334
-    register_type: holding
-    value_type: U_WORD
-    min_value: 53.6   #program 27 floating
-    max_value: 56.0   #max 62 TODO: setup to program 26 = 55.5
-    step: 0.1
-    unit_of_measurement: "V"
-    entity_category: config
-    icon: mdi:battery
-    lambda: "return x * 0.1f;"
-    write_lambda: |-
-      return x * 10.0f;
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} 34 Eq charging voltage"
+  #   use_write_multiple: true
+  #   address: 334
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   min_value: 53.6   #program 27 floating
+  #   max_value: 56.0   #max 62 TODO: setup to program 26 = 55.5
+  #   step: 0.1
+  #   unit_of_measurement: "V"
+  #   entity_category: config
+  #   icon: mdi:battery
+  #   lambda: "return x * 0.1f;"
+  #   write_lambda: |-
+  #     return x * 10.0f;
 
   # Battery equalization time                                     min     Uint  335 1 R/W Range: 0~900
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Battery equalization time"
-    use_write_multiple: true
-    address: 335
-    register_type: holding
-    value_type: U_WORD
-    min_value: 0.0    #default 60min
-    max_value: 900.0
-    step: 1
-    unit_of_measurement: "min"
-    entity_category: config
-    icon: mdi:timer
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} Battery equalization time"
+  #   use_write_multiple: true
+  #   address: 335
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   min_value: 0.0    #default 60min
+  #   max_value: 900.0
+  #   step: 1
+  #   unit_of_measurement: "min"
+  #   entity_category: config
+  #   icon: mdi:timer
 
   # Equalization Timeout exit                                     min     Uint  336 1 R/W Range: 0~900
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} 36 Equalization timeout exit"
-    use_write_multiple: true
-    address: 336
-    register_type: holding
-    value_type: U_WORD
-    min_value: 0.0    #default 120min
-    max_value: 900.0
-    step: 1
-    unit_of_measurement: "min"
-    entity_category: config
-    icon: mdi:timer
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} 36 Equalization timeout exit"
+  #   use_write_multiple: true
+  #   address: 336
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   min_value: 0.0    #default 120min
+  #   max_value: 900.0
+  #   step: 1
+  #   unit_of_measurement: "min"
+  #   entity_category: config
+  #   icon: mdi:timer
 
   # Two equalization charging intervals                           day     Uint  337 1 R/W Range: 1~90
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} 37 Two equalization charging intervals"
-    use_write_multiple: true
-    address: 337
-    register_type: holding
-    value_type: U_WORD
-    min_value: 0.0
-    max_value: 90.0
-    step: 1
-    unit_of_measurement: "day"
-    entity_category: config
-    icon: mdi:timer
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} 37 Two equalization charging intervals"
+  #   use_write_multiple: true
+  #   address: 337
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   min_value: 0.0
+  #   max_value: 90.0
+  #   step: 1
+  #   unit_of_measurement: "day"
+  #   entity_category: config
+  #   icon: mdi:timer
+  ###########################################
 
   # Battery discharge SOC protection value in AC mode [K]           1%    Uint   341 1 R/W Range: 20%~50%
   - platform: modbus_controller
@@ -926,7 +930,7 @@ number:
   # AC delay after apearing Grid (hidden feature)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 01hidden 355 AC delay"
+    name: "${name} 01hidden AC delay"
     use_write_multiple: true
     address: 355
     register_type: holding
@@ -1158,14 +1162,14 @@ switch:
     icon: mdi:toggle-switch
 
   # Energy-saving mode                                            Uint  307 1 R/W 0: Energy-saving mode is off, 1: Energy-saving mode is on
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Energy-saving mode"
-    use_write_multiple: true
-    address: 307
-    register_type: holding
-    bitmask: 1
-    icon: mdi:toggle-switch
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} Energy-saving mode"
+  #   use_write_multiple: true
+  #   address: 307
+  #   register_type: holding
+  #   bitmask: 1
+  #   icon: mdi:toggle-switch
 
   # Overload automatic restart                                    Uint  308 1 R/W 0: Overload failure will not restart, 1: Automatic restart after overload failure
   - platform: modbus_controller
@@ -1197,6 +1201,9 @@ switch:
     bitmask: 1
     icon: mdi:toggle-switch
 
+  # Equalization section
+  ###########################################
+
   # Battery Eq mode is enabled                                    Uint  313 1 R/W 0: Disable, 1: Enable
   # I turned-off this feature
 #  - platform: modbus_controller
@@ -1207,6 +1214,7 @@ switch:
 #    register_type: holding
 #    bitmask: 1
 #    icon: mdi:toggle-switch
+ ###########################################
 
   # Automatic mains output enable                                Uint   338 1 R/W 0: No AC power output if the power button is not pressed  1: Automatic AC power output if the power button is not pressed
   - platform: modbus_controller
@@ -1219,14 +1227,14 @@ switch:
     icon: mdi:toggle-switch
 
   # Island detection enable                                       Uint  352 1 R/W 0: Disable island detection 1: Enable island detection
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Island detection" #TODO: Check what is it
-    use_write_multiple: true
-    address: 352
-    register_type: holding
-    bitmask: 1
-    icon: mdi:toggle-switch
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} Island detection" #TODO: Check what is it
+  #   use_write_multiple: true
+  #   address: 352
+  #   register_type: holding
+  #   bitmask: 1
+  #   icon: mdi:toggle-switch
 
   # Remote switch                                                 Uint  420 1 R/W 0: Remote shutdown, 1: Remote turn-on
   - platform: modbus_controller
