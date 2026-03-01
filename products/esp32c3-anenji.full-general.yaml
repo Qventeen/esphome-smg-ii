@@ -59,7 +59,7 @@ modbus_controller:
     address: 0x01
     modbus_id: modbus0
     command_throttle: 200ms
-    update_interval: 20s
+    update_interval: 10s
 
 time:
   - platform: sntp
@@ -163,7 +163,7 @@ sensor:
   # Effective mains voltage                              0.1V     Int   202 1 R
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Grid voltage" # AC voltage
+    name: "${name} Main voltage" # AC voltage
     address: 202
     register_type: holding
     value_type: S_WORD
@@ -177,7 +177,7 @@ sensor:
   # Mains Frequency                                      0.01Hz   Int   203 1 R
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Grid frequency" # AC Frequency
+    name: "${name} Main frequency" # AC Frequency
     address: 203
     register_type: holding
     value_type: S_WORD
@@ -191,7 +191,7 @@ sensor:
   # Average mains power                                  1W       Int   204 1 R
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Grid power" # AC power
+    name: "${name} Main power" # AC power
     address: 204
     register_type: holding
     value_type: S_WORD
@@ -564,7 +564,7 @@ sensor:
   # Power generation on the day                            0.01Kwh  Uint   443 1 R
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} PV energy today"
+    name: "${name} Power generation today"
     address: 443
     register_type: holding
     value_type: U_WORD
@@ -1375,6 +1375,3 @@ text_sensor:
         case 6: return std::string("Fault");
       }
       return std::string("Unknown");
-
-
-
