@@ -950,16 +950,11 @@ select:
     icon: mdi:cog
     entity_category: config
     optionsmap:
-      # "Utility-PV-Battery (UTI)": 0
-      # "PV-Utility-Battery (SUB)": 1
-      # "PV-Battery-Utility (SBU)": 2
-      # "PV-Utility-Battery (SUF)": 3
-      # "Zero Export To CT (ZEC)": 4
       "UTI (Uti-Pv-Bat)": 0
       "SOL (PV-Bat-Uti)(on-demand)": 1
       "SBU (PV-Bat-Uti)": 2
       "SUB (PV-Uti-Bat)": 3
-      "SUF (Zero Export To CT)": 4 #TODO: Check description
+      "SUF (PV-UTI)": 4
 
   # Input voltage range                                           Uint  302 1 R/W 0: Wide range, 1: Narrow range
   - platform: modbus_controller
@@ -1152,7 +1147,7 @@ switch:
   # Overload automatic restart                                    Uint  308 1 R/W 0: Overload failure will not restart, 1: Automatic restart after overload failure
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Overload automatic restart"
+    name: "${name} 06 Overload automatic restart"
     use_write_multiple: true
     address: 308
     register_type: holding
@@ -1163,7 +1158,7 @@ switch:
   # Over temperature automatic restart                             Uint  309 1 R/W 0: Over temperature failure will not restart, 1: Automatic restart after over-temperature fault
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Over temperature automatic restart"
+    name: "${name} 07 Over temperature automatic restart"
     use_write_multiple: true
     address: 309
     register_type: holding
@@ -1174,7 +1169,7 @@ switch:
   # Overload transfer to bypass enabled                           Uint  310 1 R/W 0: Disable, 1: Enable
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Overload transfer to bypass enabled"
+    name: "${name} 23 Overload transfer to bypass enabled"
     use_write_multiple: true
     address: 310
     register_type: holding
@@ -1200,7 +1195,7 @@ switch:
   # Automatic mains output enable                                Uint   338 1 R/W 0: No AC power output if the power button is not pressed  1: Automatic AC power output if the power button is not pressed
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} Automatic mains output enable"
+    name: "${name} 10 Automatic mains output enable"
     use_write_multiple: true
     address: 338
     register_type: holding
@@ -1238,6 +1233,7 @@ text_sensor:
     register_count: 2
     response_size: 4
     raw_encode: HEXBYTES
+    entity_category: diagnostic
     icon: mdi:alert-circle
     lambda: |-
       static const uint8_t FAULTS_SIZE = 24;
@@ -1293,6 +1289,7 @@ text_sensor:
     register_count: 2
     response_size: 4
     raw_encode: HEXBYTES
+    entity_category: diagnostic
     icon: mdi:alert-circle
     lambda: |-
       static const uint8_t WARNINGS_SIZE = 22;
