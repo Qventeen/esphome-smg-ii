@@ -69,15 +69,15 @@ sensor:
   ##############################
 
   # PV energy today
-  - platform: total_daily_energy
-    name: "${name} PV energy today"
-    restore: true
-    icon: mdi:counter
-    power_id: smg0_pv_average_power
-    filters:
-      # Multiplication factor from W to kW is 0.001
-      - multiply: 0.001
-    unit_of_measurement: kWh
+  # - platform: total_daily_energy
+  #   name: "${name} PV energy today"
+  #   restore: true
+  #   icon: mdi:counter
+  #   power_id: smg0_pv_average_power
+  #   filters:
+  #     # Multiplication factor from W to kW is 0.001
+  #     - multiply: 0.001
+  #   unit_of_measurement: kWh
   
   # Battery discharte today
   - platform: total_daily_energy
@@ -379,61 +379,61 @@ sensor:
       - component.update: smg0_charging_power
 
   # PV average voltage                                   0.1V     Int   219 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV voltage"
-    address: 219
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "V"
-    device_class: voltage
-    state_class: measurement
-    accuracy_decimals: 1
-    icon: mdi:solar-power
-    filters:
-      - multiply: 0.1
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV voltage"
+  #   address: 219
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "V"
+  #   device_class: voltage
+  #   state_class: measurement
+  #   accuracy_decimals: 1
+  #   icon: mdi:solar-power
+  #   filters:
+  #     - multiply: 0.1
 
   # PV average current                                   0.1A     Int   220 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV current"
-    address: 220
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "A"
-    device_class: current
-    state_class: measurement
-    accuracy_decimals: 1
-    icon: mdi:solar-power
-    filters:
-      - multiply: 0.1
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV current"
+  #   address: 220
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "A"
+  #   device_class: current
+  #   state_class: measurement
+  #   accuracy_decimals: 1
+  #   icon: mdi:solar-power
+  #   filters:
+  #     - multiply: 0.1
 
   # PV average power                                     1W       Int   223 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    id: smg0_pv_average_power
-    name: "${name} PV power"
-    address: 223
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "W"
-    device_class: power
-    state_class: measurement
-    accuracy_decimals: 0
-    icon: mdi:solar-power
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   id: smg0_pv_average_power
+  #   name: "${name} PV power"
+  #   address: 223
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "W"
+  #   device_class: power
+  #   state_class: measurement
+  #   accuracy_decimals: 0
+  #   icon: mdi:solar-power
 
   # PV charging average power                            1W       Int   224 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV charging power"
-    address: 224
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "W"
-    device_class: power
-    state_class: measurement
-    accuracy_decimals: 0
-    icon: mdi:solar-power
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV charging power"
+  #   address: 224
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "W"
+  #   device_class: power
+  #   state_class: measurement
+  #   accuracy_decimals: 0
+  #   icon: mdi:solar-power
 
   # Load percentage                                      1%       Int   225 1 R
   - platform: modbus_controller
@@ -472,16 +472,16 @@ sensor:
     accuracy_decimals: 0
 
   # PV temperature                                       1°C      Int   228 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV temperature"
-    address: 228
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "°C"
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 0
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV temperature"
+  #   address: 228
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "°C"
+  #   device_class: temperature
+  #   state_class: measurement
+  #   accuracy_decimals: 0
 
     
   # Battery state of charge                              1%       UInt  229 1 R
@@ -547,57 +547,34 @@ sensor:
       - multiply: 0.1
 
   # PV charging average current                          0.1A     Int   234 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV charging current"
-    address: 234
-    register_type: holding
-    value_type: S_WORD
-    unit_of_measurement: "A"
-    device_class: current
-    state_class: measurement
-    accuracy_decimals: 1
-    icon: mdi:solar-power
-    filters:
-      - multiply: 0.1
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV charging current"
+  #   address: 234
+  #   register_type: holding
+  #   value_type: S_WORD
+  #   unit_of_measurement: "A"
+  #   device_class: current
+  #   state_class: measurement
+  #   accuracy_decimals: 1
+  #   icon: mdi:solar-power
+  #   filters:
+  #     - multiply: 0.1
 
   # Power generation on the day                            0.01Kwh  Uint   443 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Power generation today"
-    address: 443
-    register_type: holding
-    value_type: U_WORD
-    unit_of_measurement: "kWh"
-    icon: mdi:solar-power
-    device_class: energy
-    state_class: "total_increasing"
-    accuracy_decimals: 1
-    filters:
-      - multiply: 0.01
-
-  ## Rated power                                           W       Uint  643 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Rated power"
-    address: 643
-    register_type: holding
-    value_type: U_WORD
-    unit_of_measurement: "W"
-    device_class: power
-    state_class: measurement
-    accuracy_decimals: 0
-
-  # Rated number of battery cells [J]                 PCS       Uint  644 1 R
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} Rated number of battery cells "
-    address: 644
-    register_type: holding
-    value_type: U_WORD
-    unit_of_measurement: "PCS"
-    state_class: measurement
-    accuracy_decimals: 0
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} Power generation today"
+  #   address: 443
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   unit_of_measurement: "kWh"
+  #   icon: mdi:solar-power
+  #   device_class: energy
+  #   state_class: "total_increasing"
+  #   accuracy_decimals: 1
+  #   filters:
+  #     - multiply: 0.01
 
 number:
   # Output voltage                                               0.1V    Uint  320 1 R/W
@@ -896,20 +873,20 @@ number:
     icon: mdi:shield-check
 
   # PV grid-connected maximum power                                    1w    Uint   344 1 R/W Range: 200w~ rated power
-  - platform: modbus_controller
-    modbus_controller_id: smg0
-    name: "${name} PV grid-connected maximum power"
-    use_write_multiple: true
-    address: 344
-    register_type: holding
-    value_type: U_WORD
-    min_value: 0
-    max_value: 5000     #TODO: Check this values
-    step: 1
-    device_class: power
-    unit_of_measurement: "W"
-    entity_category: config
-    icon: mdi:chart-line
+  # - platform: modbus_controller
+  #   modbus_controller_id: smg0
+  #   name: "${name} PV grid-connected maximum power"
+  #   use_write_multiple: true
+  #   address: 344
+  #   register_type: holding
+  #   value_type: U_WORD
+  #   min_value: 0
+  #   max_value: 5000     #TODO: Check this values
+  #   step: 1
+  #   device_class: power
+  #   unit_of_measurement: "W"
+  #   entity_category: config
+  #   icon: mdi:chart-line
 
   # Maximum discharge current protection                                1A    Uint   351 1 R/W Maximum discharge current protection value in stand-alone mode
   - platform: modbus_controller
@@ -930,7 +907,7 @@ number:
   # AC delay after apearing Grid (hidden feature)
   - platform: modbus_controller
     modbus_controller_id: smg0
-    name: "${name} 01hidden AC delay"
+    name: "${name} 01hid Main delay"
     use_write_multiple: true
     address: 355
     register_type: holding
@@ -1159,6 +1136,7 @@ switch:
     address: 306
     register_type: holding
     bitmask: 1
+    entity_category: config
     icon: mdi:toggle-switch
 
   # Energy-saving mode                                            Uint  307 1 R/W 0: Energy-saving mode is off, 1: Energy-saving mode is on
@@ -1179,6 +1157,7 @@ switch:
     address: 308
     register_type: holding
     bitmask: 1
+    entity_category: config
     icon: mdi:toggle-switch
 
   # Over temperature automatic restart                             Uint  309 1 R/W 0: Over temperature failure will not restart, 1: Automatic restart after over-temperature fault
@@ -1189,6 +1168,7 @@ switch:
     address: 309
     register_type: holding
     bitmask: 1
+    entity_category: config
     icon: mdi:toggle-switch
 
   # Overload transfer to bypass enabled                           Uint  310 1 R/W 0: Disable, 1: Enable
@@ -1199,6 +1179,7 @@ switch:
     address: 310
     register_type: holding
     bitmask: 1
+    entity_category: config
     icon: mdi:toggle-switch
 
   # Equalization section
@@ -1224,6 +1205,7 @@ switch:
     address: 338
     register_type: holding
     bitmask: 1
+    entity_category: config
     icon: mdi:toggle-switch
 
   # Island detection enable                                       Uint  352 1 R/W 0: Disable island detection 1: Enable island detection
