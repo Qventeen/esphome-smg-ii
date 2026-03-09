@@ -1,11 +1,21 @@
 substitutions:
   name: bps #backup power system
   name_inverter: anenji
-  name_bms: jk-bms
+  name_bms: jk-bms-ble
   device_description: "Backup power system ESP32c3"
   tx_pin: GPIO04
   rx_pin: GPIO03
 
+  external_components_source: github://syssi/esphome-jk-bms@main
+  mac_address: A4:C1:38:05:17:7D
+  # Please use "JK02_24S" if you own a old JK-BMS < hardware version 11.0 (hardware version >= 6.0 and < 11.0)
+  # Please use "JK02_32S" if you own a new JK-BMS >= hardware version 11.0 (f.e. JK-B2A8S20P hw 11.XW, sw 11.26)
+  # Please use "JK04" if you have some old JK-BMS <= hardware version 3.0 (f.e. JK-B2A16S hw 3.0, sw. 3.3.0)
+  protocol_version: JK02_32S
+
+###############################################
+# Common
+###############################################
 esphome:
   name: ${name}
   friendly_name: ${name}
@@ -18,7 +28,7 @@ esp32:
 
 # Enable logging
 logger:
-  level: INFO
+  level: WARN
 
 # Enable Home Assistant API
 api:
@@ -29,6 +39,10 @@ api:
 ota:
   - platform: esphome
     password: !secret bps_ota_password
+    on_begin:
+      then:
+      - switch.turn_off: ble_client_switch0
+      - logger.log: "BLE connection suspended for OTA update"
 
 # Use wifi connection
 wifi:
@@ -44,6 +58,12 @@ web_server:
     username: !secret bps_web_server_username
     password: !secret bps_web_server_password
 
+time:
+  - platform: sntp
+
+###############################################
+# Inverter
+###############################################
 uart:
   - id: uart_0
     baud_rate: 9600
@@ -62,12 +82,108 @@ modbus_controller:
     command_throttle: 200ms
     update_interval: 5s
 
-time:
-  - platform: sntp
+###############################################
+# Bms
+###############################################
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: false
+
+ble_client:
+  - mac_address: ${mac_address}
+    id: client0
+
+jk_bms_ble:
+  - ble_client_id: client0
+    protocol_version: ${protocol_version}
+    throttle: 5s
+    id: bms0
+###############################################
+
+binary_sensor:
+###############################################
+# Bms
+###############################################
+  - platform: jk_bms_ble
+    balancing:
+      name: "${name_bms} Balancing"
+    charging:
+      name: "${name_bms} Charging"
+    discharging:
+      name: "${name_bms} Discharging"
+    heating:
+      name: "${name_bms} Heating"
+    online_status:
+      name: "${name_bms} Online status"
+    dry_contact_1:
+      name: "${name_bms} Dry contact 1"
+    dry_contact_2:
+      name: "${name_bms} Dry contact 2"
+
+
+button:
+###############################################
+# Bms
+###############################################
+  - platform: jk_bms_ble
+    retrieve_settings:
+      name: "${name_bms} Retrieve settings"
+      id: btn_retrieve_settings
+      on_press:
+        then:
+          - delay: 10s 
+          - component.update: ts_cell_count
+          - component.update: ts_total_capacity
+          - component.update: ts_balance_trigger
+          - component.update: ts_volt_calib
+          - component.update: ts_curr_calib
+          - component.update: ts_start_bal
+          - component.update: ts_max_bal
+          - component.update: ts_ovp
+          - component.update: ts_rcv
+          - component.update: ts_soc100
+          - component.update: ts_ovpr
+          - component.update: ts_uvpr
+          - component.update: ts_soc0
+          - component.update: ts_uvp
+          - component.update: ts_power_off
+          - component.update: ts_rfv
+          - component.update: ts_smart_sleep
+          - component.update: ts_chg_curr
+          - component.update: ts_chg_ocp_delay
+          - component.update: ts_chg_ocpr
+          - component.update: ts_dis_curr
+          - component.update: ts_dis_ocp_delay
+          - component.update: ts_dis_ocpr
+          - component.update: ts_chg_otp
+          - component.update: ts_chg_otpr
+          - component.update: ts_dis_otp
+          - component.update: ts_dis_otpr
+          - component.update: ts_chg_utp
+          - component.update: ts_chg_utpr
+          - component.update: ts_heat_start
+          - component.update: ts_heat_stop
+          - component.update: ts_mos_otp
+          - component.update: ts_mos_otpr
+          - component.update: ts_scp_delay
+          - component.update: ts_scpr_time
+          - component.update: ts_precharge
+          - component.update: ts_rcv_time
+          - component.update: ts_rfv_time
+
+    retrieve_device_info:
+      name: "${name_bms} Retrieve device info"
+      # Hardware/Software versions are usually text_sensors 
+      # and update automatically, so no extra logic needed here.
 
 sensor:
-  # Derived sensors
-  ##############################
+###############################################
+# Inverter
+###############################################
 
   # PV energy today
   # - platform: total_daily_energy
@@ -135,10 +251,7 @@ sensor:
       }
       auto power = id(smg0_battery_average_power).state;
       return (power > 0.0f) ? power : 0.0f;
-  ##############################
 
-  # Device section
-  ############################
   # Device Type	 	       UInt	171	1	R
   - platform: modbus_controller
     modbus_controller_id: smg0
@@ -158,8 +271,6 @@ sensor:
     register_type: holding
     value_type: U_WORD
     accuracy_decimals: 0
-  ############################
-
 
   # Effective mains voltage                              0.1V     Int   202 1 R
   - platform: modbus_controller
@@ -380,61 +491,61 @@ sensor:
       - component.update: smg0_charging_power
 
   # PV average voltage                                   0.1V     Int   219 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV voltage"
-  #   address: 219
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "V"
-  #   device_class: voltage
-  #   state_class: measurement
-  #   accuracy_decimals: 1
-  #   icon: mdi:solar-power
-  #   filters:
-  #     - multiply: 0.1
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV voltage"
+  #  address: 219
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "V"
+  #  device_class: voltage
+  #  state_class: measurement
+  #  accuracy_decimals: 1
+  #  icon: mdi:solar-power
+  #  filters:
+  #    - multiply: 0.1
 
   # PV average current                                   0.1A     Int   220 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV current"
-  #   address: 220
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "A"
-  #   device_class: current
-  #   state_class: measurement
-  #   accuracy_decimals: 1
-  #   icon: mdi:solar-power
-  #   filters:
-  #     - multiply: 0.1
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV current"
+  #  address: 220
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "A"
+  #  device_class: current
+  #  state_class: measurement
+  #  accuracy_decimals: 1
+  #  icon: mdi:solar-power
+  #  filters:
+  #    - multiply: 0.1
 
   # PV average power                                     1W       Int   223 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   id: smg0_pv_average_power
-  #   name: "${name_inverter} PV power"
-  #   address: 223
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "W"
-  #   device_class: power
-  #   state_class: measurement
-  #   accuracy_decimals: 0
-  #   icon: mdi:solar-power
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  id: smg0_pv_average_power
+  #  name: "${name_inverter} PV power"
+  #  address: 223
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "W"
+  #  device_class: power
+  #  state_class: measurement
+  #  accuracy_decimals: 0
+  #  icon: mdi:solar-power
 
   # PV charging average power                            1W       Int   224 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV charging power"
-  #   address: 224
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "W"
-  #   device_class: power
-  #   state_class: measurement
-  #   accuracy_decimals: 0
-  #   icon: mdi:solar-power
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV charging power"
+  #  address: 224
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "W"
+  #  device_class: power
+  #  state_class: measurement
+  #  accuracy_decimals: 0
+  #  icon: mdi:solar-power
 
   # Load percentage                                      1%       Int   225 1 R
   - platform: modbus_controller
@@ -473,17 +584,16 @@ sensor:
     accuracy_decimals: 0
 
   # PV temperature                                       1°C      Int   228 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV temperature"
-  #   address: 228
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "°C"
-  #   device_class: temperature
-  #   state_class: measurement
-  #   accuracy_decimals: 0
-
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV temperature"
+  #  address: 228
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "°C"
+  #  device_class: temperature
+  #  state_class: measurement
+  #  accuracy_decimals: 0
     
   # Battery state of charge                              1%       UInt  229 1 R
   - platform: modbus_controller
@@ -548,36 +658,512 @@ sensor:
       - multiply: 0.1
 
   # PV charging average current                          0.1A     Int   234 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV charging current"
-  #   address: 234
-  #   register_type: holding
-  #   value_type: S_WORD
-  #   unit_of_measurement: "A"
-  #   device_class: current
-  #   state_class: measurement
-  #   accuracy_decimals: 1
-  #   icon: mdi:solar-power
-  #   filters:
-  #     - multiply: 0.1
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV charging current"
+  #  address: 234
+  #  register_type: holding
+  #  value_type: S_WORD
+  #  unit_of_measurement: "A"
+  #  device_class: current
+  #  state_class: measurement
+  #  accuracy_decimals: 1
+  #  icon: mdi:solar-power
+  #  filters:
+  #    - multiply: 0.1
 
   # Power generation on the day                            0.01Kwh  Uint   443 1 R
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} Power generation today"
-  #   address: 443
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   unit_of_measurement: "kWh"
-  #   icon: mdi:solar-power
-  #   device_class: energy
-  #   state_class: "total_increasing"
-  #   accuracy_decimals: 1
-  #   filters:
-  #     - multiply: 0.01
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} Power generation today"
+  #  address: 443
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  unit_of_measurement: "kWh"
+  #  icon: mdi:solar-power
+  #  device_class: energy
+  #  state_class: "total_increasing"
+  #  accuracy_decimals: 1
+  #  filters:
+  #    - multiply: 0.01
+
+###############################################
+# Bms
+###############################################
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms0
+   
+    #Voltage monitoring
+    min_cell_voltage:
+      name: "${name_bms} Min cell voltage"
+    max_cell_voltage:
+      name: "${name_bms} Max cell voltage"
+    min_voltage_cell:
+      name: "${name_bms} Min voltage cell"
+    max_voltage_cell:
+      name: "${name_bms} Max voltage cell"
+    delta_cell_voltage:
+      name: "${name_bms} Delta cell voltage"
+    average_cell_voltage:
+      name: "${name_bms} Average cell voltage"
+    cell_voltage_1:
+      name: "${name_bms} Cell voltage 1"
+    cell_voltage_2:
+      name: "${name_bms} Cell voltage 2"
+    cell_voltage_3:
+      name: "${name_bms} Cell voltage 3"
+    cell_voltage_4:
+      name: "${name_bms} Cell voltage 4"
+    cell_voltage_5:
+      name: "${name_bms} Cell voltage 5"
+    cell_voltage_6:
+      name: "${name_bms} Cell voltage 6"
+    cell_voltage_7:
+      name: "${name_bms} Cell voltage 7"
+    cell_voltage_8:
+      name: "${name_bms} Cell voltage 8"
+    cell_voltage_9:
+      name: "${name_bms} Cell voltage 9"
+    cell_voltage_10:
+      name: "${name_bms} Cell voltage 10"
+    cell_voltage_11:
+      name: "${name_bms} Cell voltage 11"
+    cell_voltage_12:
+      name: "${name_bms} Cell voltage 12"
+    cell_voltage_13:
+      name: "${name_bms} Cell voltage 13"
+    cell_voltage_14:
+      name: "${name_bms} Cell voltage 14"
+    cell_voltage_15:
+      name: "${name_bms} Cell voltage 15"
+    cell_voltage_16:
+      name: "${name_bms} Cell voltage 16"
+    
+    #Resistense
+    cell_resistance_1:
+      name: "${name_bms} Cell resistance 1"
+    cell_resistance_2:
+      name: "${name_bms} Cell resistance 2"
+    cell_resistance_3:
+      name: "${name_bms} Cell resistance 3"
+    cell_resistance_4:
+      name: "${name_bms} Cell resistance 4"
+    cell_resistance_5:
+      name: "${name_bms} Cell resistance 5"
+    cell_resistance_6:
+      name: "${name_bms} Cell resistance 6"
+    cell_resistance_7:
+      name: "${name_bms} Cell resistance 7"
+    cell_resistance_8:
+      name: "${name_bms} Cell resistance 8"
+    cell_resistance_9:
+      name: "${name_bms} Cell resistance 9"
+    cell_resistance_10:
+      name: "${name_bms} Cell resistance 10"
+    cell_resistance_11:
+      name: "${name_bms} Cell resistance 11"
+    cell_resistance_12:
+      name: "${name_bms} Cell resistance 12"
+    cell_resistance_13:
+      name: "${name_bms} Cell resistance 13"
+    cell_resistance_14:
+      name: "${name_bms} Cell resistance 14"
+    cell_resistance_15:
+      name: "${name_bms} Cell resistance 15"
+    cell_resistance_16:
+      name: "${name_bms} Cell resistance 16"
+
+    total_voltage:
+      name: "${name_bms} Total voltage"
+    current:
+      name: "${name_bms} Current"
+    heating_current:
+      name: "${name_bms} Heating current"
+    power:
+      name: "${name_bms} Power"
+    charging_power:
+      name: "${name_bms} Charging power"
+    discharging_power:
+      name: "${name_bms} Discharging power"
+    temperature_sensor_1:
+      name: "${name_bms} Temperature sensor 1"
+    temperature_sensor_2:
+      name: "${name_bms} Temperature sensor 2"
+    temperature_sensor_3:
+      name: "${name_bms} Temperature sensor 3"
+    temperature_sensor_4:
+      name: "${name_bms} Temperature sensor 4"
+    temperature_sensor_5:
+      name: "${name_bms} Temperature sensor 5"
+    power_tube_temperature:
+      name: "${name_bms} Power tube temperature"
+    balancing:
+      name: "${name_bms} Balancing"
+    state_of_charge:
+      name: "${name_bms} State of charge"
+    state_of_health:
+      name: "${name_bms} State of health"
+    capacity_remaining:
+      name: "${name_bms} Capacity remaining"
+    total_battery_capacity_setting:
+      name: "${name_bms} Total battery capacity setting"
+    charging_cycles:
+      name: "${name_bms} Charging cycles"
+    total_charging_cycle_capacity:
+      name: "${name_bms} Total charging cycle capacity"
+    total_runtime:
+      name: "${name_bms} Total runtime"
+    balancing_current:
+      name: "${name_bms} Balancing current"
+    errors_bitmask:
+      name: "${name_bms} Errors bitmask"
+    emergency_time_countdown:
+      name: "${name_bms} Emergency time countdown"
+    charge_status_id:
+      name: "${name_bms} Charge status id"
+    charge_status_time_elapsed:
+      name: "${name_bms} Charge status time elapsed"
+
+  #########################################################
+  # READ ONLY CONFIGURATION (mirrored numbers)
+  #########################################################
+  - platform: template
+    id: ts_cell_count
+    name: "${name_bms} Cell Count"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(cell_count).state;
+
+  - platform: template
+    id: ts_total_capacity
+    name: "${name_bms} Total Battery Capacity"
+    unit_of_measurement: "Ah"
+    device_class: energy_storage
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(total_battery_capacity).state;
+
+  - platform: template
+    id: ts_balance_trigger
+    name: "${name_bms} Balance Trigger Voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(balance_trigger_voltage).state;
+
+  - platform: template
+    id: ts_volt_calib
+    name: "${name_bms} Voltage calibration"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(voltage_calibration).state;
+
+  - platform: template
+    id: ts_curr_calib
+    name: "${name_bms} Current calibration"
+    unit_of_measurement: "A"
+    device_class: current
+    entity_category: diagnostic
+    accuracy_decimals: 2
+    lambda: return id(current_calibration).state;
+
+  - platform: template
+    id: ts_start_bal
+    name: "${name_bms} Start Balance voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(balance_starting_voltage).state;
+
+  - platform: template
+    id: ts_max_bal
+    name: "${name_bms} Max Balance current"
+    unit_of_measurement: "A"
+    device_class: current
+    entity_category: diagnostic
+    accuracy_decimals: 2
+    lambda: return id(max_balance_current).state;
+
+  - platform: template
+    id: ts_ovp
+    name: "${name_bms} Cell OVP (over valtage protection)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_voltage_overvoltage_protection).state;
+
+  - platform: template
+    id: ts_rcv
+    name: "${name_bms} Cell RCV (request charge voltage)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_request_charge_voltage).state;
+
+  - platform: template
+    id: ts_soc100
+    name: "${name_bms} Cell SOC-100 Voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_soc100_voltage).state;
+
+  - platform: template
+    id: ts_ovpr
+    name: "${name_bms} Cell OVPR (over voltage protection recovery)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_voltage_overvoltage_recovery).state;
+
+  - platform: template
+    id: ts_uvpr
+    name: "${name_bms} Cell UVPR (under voltage protection recovery)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_voltage_undervoltage_recovery).state;
+
+  - platform: template
+    id: ts_soc0
+    name: "${name_bms} Cell SOC-0 voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_soc0_voltage).state;
+
+  - platform: template
+    id: ts_uvp
+    name: "${name_bms} Cell UVP (under voltage protection)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_voltage_undervoltage_protection).state;
+
+  - platform: template
+    id: ts_power_off
+    name: "${name_bms} Power Off voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(power_off_voltage).state;
+
+  - platform: template
+    id: ts_rfv
+    name: "${name_bms} Cell RFV (request float voltage)"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(cell_request_float_voltage).state;
+
+  - platform: template
+    id: ts_smart_sleep
+    name: "${name_bms} Smart Sleep Voltage"
+    unit_of_measurement: "V"
+    device_class: voltage
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    lambda: return id(smart_sleep_voltage).state;
+
+  - platform: template
+    id: ts_chg_curr
+    name: "${name_bms} Continued Charge Current"
+    unit_of_measurement: "A"
+    device_class: current
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(max_charge_current).state;
+
+  - platform: template
+    id: ts_chg_ocp_delay
+    name: "${name_bms} Charge OCP delay (over current protection)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(charge_overcurrent_protection_delay).state;
+
+  - platform: template
+    id: ts_chg_ocpr
+    name: "${name_bms} Charge OCPR (over current protection recovery)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(charge_overcurrent_protection_recovery_time).state;
+
+  - platform: template
+    id: ts_dis_curr
+    name: "${name_bms} Continued Discharge Current"
+    unit_of_measurement: "A"
+    device_class: current
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(max_discharge_current).state;
+
+  - platform: template
+    id: ts_dis_ocp_delay
+    name: "${name_bms} Discharge OCP Delay (over current protection)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(discharge_overcurrent_protection_delay).state;
+
+  - platform: template
+    id: ts_dis_ocpr
+    name: "${name_bms} Discharge OCPR (over current protection recovery)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(discharge_overcurrent_protection_recovery_time).state;
+
+  - platform: template
+    id: ts_chg_otp
+    name: "${name_bms} Charge OTP (over temperature protection)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(charge_overtemperature_protection).state;
+
+  - platform: template
+    id: ts_chg_otpr
+    name: "${name_bms} Charge OTPR (over temperature protection recovery)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(charge_overtemperature_protection_recovery).state;
+
+  - platform: template
+    id: ts_dis_otp
+    name: "${name_bms} Discharge OTP (over temperature protection)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(discharge_overtemperature_protection).state;
+
+  - platform: template
+    id: ts_dis_otpr
+    name: "${name_bms} Discharge OTPR (over temperature protection recovery)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(discharge_overtemperature_protection_recovery).state;
+
+  - platform: template
+    id: ts_chg_utp
+    name: "${name_bms} Charge UTP (under temperature protection)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(charge_undertemperature_protection).state;
+
+  - platform: template
+    id: ts_chg_utpr
+    name: "${name_bms} Charge UTPR (under temperature protection recovery)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(charge_undertemperature_protection_recovery).state;
+
+  - platform: template
+    id: ts_heat_start
+    name: "${name_bms} Start Heating Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(heating_start_temperature).state;
+
+  - platform: template
+    id: ts_heat_stop
+    name: "${name_bms} Stop Heating Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(heating_stop_temperature).state;
+
+  - platform: template
+    id: ts_mos_otp
+    name: "${name_bms} MOS OTP (over temperature protection)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(power_tube_overtemperature_protection).state;
+
+  - platform: template
+    id: ts_mos_otpr
+    name: "${name_bms} MOS OTPR (over temperature protection recovery)"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    lambda: return id(power_tube_overtemperature_protection_recovery).state;
+
+  - platform: template
+    id: ts_scp_delay
+    name: "${name_bms} SCP Delay (short circuit protection)"
+    unit_of_measurement: "µs"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(short_circuit_protection_delay).state;
+
+  - platform: template
+    id: ts_scpr_time
+    name: "${name_bms} SCPR Time (short circuit protection recovery)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(short_circuit_protection_recovery_time).state;
+
+  - platform: template
+    id: ts_precharge
+    name: "${name_bms} Discharge Precharge Time"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(discharge_precharge_time).state;
+
+  - platform: template
+    id: ts_rcv_time
+    name: "${name_bms} Charge voltage time (!!!RCV Time!!!)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(cell_request_charge_voltage_time).state;
+
+  - platform: template
+    id: ts_rfv_time
+    name: "${name_bms} Float voltage time (!!!)"
+    unit_of_measurement: "s"
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    lambda: return id(cell_request_float_voltage_time).state;
+  
 
 number:
+###############################################
+# Inverter
+###############################################
+
   # Output voltage                                               0.1V    Uint  320 1 R/W
   - platform: modbus_controller
     modbus_controller_id: smg0
@@ -765,67 +1351,67 @@ number:
   ###########################################
   
   # Eq Charging voltage                                           0.1V    Uint  334 1 R/W
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} 34 Eq charging voltage"
-  #   use_write_multiple: true
-  #   address: 334
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   min_value: 53.6   #program 27 floating
-  #   max_value: 56.0   #max 62 TODO: setup to program 26 = 55.5
-  #   step: 0.1
-  #   unit_of_measurement: "V"
-  #   entity_category: config
-  #   icon: mdi:battery
-  #   lambda: "return x * 0.1f;"
-  #   write_lambda: |-
-  #     return x * 10.0f;
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 34 Eq charging voltage"
+  #  use_write_multiple: true
+  #  address: 334
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  min_value: 53.6   #program 27 floating
+  #  max_value: 56.0   #max 62 TODO: setup to program 26 = 55.5
+  #  step: 0.1
+  #  unit_of_measurement: "V"
+  #  entity_category: config
+  #  icon: mdi:battery
+  #  lambda: "return x * 0.1f;"
+  #  write_lambda: |-
+  #    return x * 10.0f;
 
   # Battery equalization time                                     min     Uint  335 1 R/W Range: 0~900
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} Battery equalization time"
-  #   use_write_multiple: true
-  #   address: 335
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   min_value: 0.0    #default 60min
-  #   max_value: 900.0
-  #   step: 1
-  #   unit_of_measurement: "min"
-  #   entity_category: config
-  #   icon: mdi:timer
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} Battery equalization time"
+  #  use_write_multiple: true
+  #  address: 335
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  min_value: 0.0    #default 60min
+  #  max_value: 900.0
+  #  step: 1
+  #  unit_of_measurement: "min"
+  #  entity_category: config
+  #  icon: mdi:timer
 
   # Equalization Timeout exit                                     min     Uint  336 1 R/W Range: 0~900
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} 36 Equalization timeout exit"
-  #   use_write_multiple: true
-  #   address: 336
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   min_value: 0.0    #default 120min
-  #   max_value: 900.0
-  #   step: 1
-  #   unit_of_measurement: "min"
-  #   entity_category: config
-  #   icon: mdi:timer
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 36 Equalization timeout exit"
+  #  use_write_multiple: true
+  #  address: 336
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  min_value: 0.0    #default 120min
+  #  max_value: 900.0
+  #  step: 1
+  #  unit_of_measurement: "min"
+  #  entity_category: config
+  #  icon: mdi:timer
 
   # Two equalization charging intervals                           day     Uint  337 1 R/W Range: 1~90
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} 37 Two equalization charging intervals"
-  #   use_write_multiple: true
-  #   address: 337
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   min_value: 0.0
-  #   max_value: 90.0
-  #   step: 1
-  #   unit_of_measurement: "day"
-  #   entity_category: config
-  #   icon: mdi:timer
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 37 Two equalization charging intervals"
+  #  use_write_multiple: true
+  #  address: 337
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  min_value: 0.0
+  #  max_value: 90.0
+  #  step: 1
+  #  unit_of_measurement: "day"
+  #  entity_category: config
+  #  icon: mdi:timer
   ###########################################
 
   # Battery discharge SOC protection value in AC mode [K]           1%    Uint   341 1 R/W Range: 20%~50%
@@ -874,20 +1460,20 @@ number:
     icon: mdi:shield-check
 
   # PV grid-connected maximum power                                    1w    Uint   344 1 R/W Range: 200w~ rated power
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} PV grid-connected maximum power"
-  #   use_write_multiple: true
-  #   address: 344
-  #   register_type: holding
-  #   value_type: U_WORD
-  #   min_value: 0
-  #   max_value: 5000     #TODO: Check this values
-  #   step: 1
-  #   device_class: power
-  #   unit_of_measurement: "W"
-  #   entity_category: config
-  #   icon: mdi:chart-line
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} PV grid-connected maximum power"
+  #  use_write_multiple: true
+  #  address: 344
+  #  register_type: holding
+  #  value_type: U_WORD
+  #  min_value: 0
+  #  max_value: 5000     #TODO: Check this values
+  #  step: 1
+  #  device_class: power
+  #  unit_of_measurement: "W"
+  #  entity_category: config
+  #  icon: mdi:chart-line
 
   # Maximum discharge current protection                                1A    Uint   351 1 R/W Maximum discharge current protection value in stand-alone mode
   - platform: modbus_controller
@@ -920,8 +1506,192 @@ number:
     unit_of_measurement: "s"
     entity_category: config
     icon: mdi:shield-check
+  
+###############################################
+# Bms
+###############################################
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms0
+    balance_trigger_voltage:
+      id: balance_trigger_voltage
+      name: "${name_bms} Balance trigger voltage"
+      internal: true #Hide control element
+    cell_count:
+      id: cell_count
+      name: "${name_bms} Cell count"
+      internal: true #Hide control element
+    total_battery_capacity:
+      id: total_battery_capacity
+      name: "${name_bms} Total battery capacity"
+      internal: true #Hide control element
+    cell_voltage_overvoltage_protection:
+      id: cell_voltage_overvoltage_protection
+      name: "${name_bms} Cell voltage overvoltage protection"
+      internal: true #Hide control element
+    cell_voltage_overvoltage_recovery:
+      id: cell_voltage_overvoltage_recovery
+      name: "${name_bms} Cell voltage overvoltage recovery"
+      internal: true #Hide control element
+    cell_voltage_undervoltage_protection:
+      id: cell_voltage_undervoltage_protection
+      name: "${name_bms} Cell voltage undervoltage protection"
+      internal: true #Hide control element
+    cell_voltage_undervoltage_recovery:
+      id: cell_voltage_undervoltage_recovery
+      name: "${name_bms} Cell voltage undervoltage recovery"
+      internal: true #Hide control element
+    balance_starting_voltage:
+      id: balance_starting_voltage
+      name: "${name_bms} Balance starting voltage"
+      internal: true #Hide control element
+    voltage_calibration:
+      id: voltage_calibration
+      name: "${name_bms} Voltage calibration"
+      internal: true #Hide control element
+    current_calibration:
+      id: current_calibration
+      name: "${name_bms} Current calibration"
+      internal: true #Hide control element
+    power_off_voltage:
+      id: power_off_voltage
+      name: "${name_bms} Power off voltage"
+      internal: true #Hide control element
+    max_balance_current:
+      id: max_balance_current
+      name: "${name_bms} Max balance current"
+      internal: true #Hide control element
+    max_charge_current:
+      id: max_charge_current
+      name: "${name_bms} Max charge current"
+      internal: true #Hide control element
+    max_discharge_current:
+      id: max_discharge_current
+      name: "${name_bms} Max discharge current"
+      internal: true #Hide control element
+    smart_sleep_voltage:
+      id: smart_sleep_voltage
+      name: "${name_bms} Smart sleep voltage"
+      internal: true #Hide control element
+    cell_soc100_voltage:
+      id: cell_soc100_voltage
+      name: "${name_bms} Cell soc100 voltage"
+      internal: true #Hide control element
+    cell_soc0_voltage:
+      id: cell_soc0_voltage
+      name: "${name_bms} Cell soc0 voltage"
+      internal: true #Hide control element
+    cell_request_charge_voltage:
+      id: cell_request_charge_voltage
+      name: "${name_bms} Cell request charge voltage"
+      internal: true #Hide control element
+    cell_request_float_voltage:
+      id: cell_request_float_voltage
+      name: "${name_bms} Cell request float voltage"
+      internal: true #Hide control element
+    cell_request_charge_voltage_time:
+      id: cell_request_charge_voltage_time
+      name: "${name_bms} Cell request charge voltage time"
+      internal: true #Hide control element
+    cell_request_float_voltage_time:
+      id: cell_request_float_voltage_time
+      name: "${name_bms} Cell request float voltage time"
+      internal: true #Hide control element
+    charge_overcurrent_protection_delay:
+      id: charge_overcurrent_protection_delay
+      name: "${name_bms} Charge overcurrent protection delay"
+      internal: true #Hide control element
+    charge_overcurrent_protection_recovery_time:
+      id: charge_overcurrent_protection_recovery_time
+      name: "${name_bms} Charge overcurrent protection recovery time"
+      internal: true #Hide control element
+    discharge_overcurrent_protection_delay:
+      id: discharge_overcurrent_protection_delay
+      name: "${name_bms} Discharge overcurrent protection delay"
+      internal: true #Hide control element
+    discharge_overcurrent_protection_recovery_time:
+      id: discharge_overcurrent_protection_recovery_time
+      name: "${name_bms} Discharge overcurrent protection recovery time"
+      internal: true #Hide control element
+    short_circuit_protection_delay:
+      id: short_circuit_protection_delay
+      name: "${name_bms} Short circuit protection delay"
+      internal: true #Hide control element
+    short_circuit_protection_recovery_time:
+      id: short_circuit_protection_recovery_time
+      name: "${name_bms} Short circuit protection recovery time"
+      internal: true #Hide control element
+
+    #Temperature
+    #Charge OTP
+    charge_overtemperature_protection:
+      id:  charge_overtemperature_protection
+      name: "${name_bms} Charge overtemperature protection"
+      internal: true #Hide control element
+    #Charge OTPR
+    charge_overtemperature_protection_recovery:
+      id: charge_overtemperature_protection_recovery
+      name: "${name_bms} Charge overtemperature protection recovery"
+      internal: true #Hide control element
+    #Discharge OTP  
+    discharge_overtemperature_protection:
+      id: discharge_overtemperature_protection
+      name: "${name_bms} Discharge overtemperature protection"
+      internal: true #Hide control element
+    #Discharge OTPR  
+    discharge_overtemperature_protection_recovery:
+      id: discharge_overtemperature_protection_recovery
+      name: "${name_bms} Discharge overtemperature protection recovery"
+      internal: true #Hide control element
+    #Charge UTP  
+    charge_undertemperature_protection:
+      id: charge_undertemperature_protection
+      name: "${name_bms} Charge undertemperature protection"
+      internal: true #Hide control element
+    #Charge UTPR  
+    charge_undertemperature_protection_recovery:
+      id: charge_undertemperature_protection_recovery
+      name: "${name_bms} Charge undertemperature protection recovery"
+      internal: true #Hide control element
+
+    #TEST PARAM
+    #Discharge UTP  
+    #discharge_undertemperature_protection:
+    #  id: discharge_undertemperature_protection
+    #  name: "${name_bms} Discharge undertemperature protection"
+    #  internal: true #Hide control element
+    #Discharge UTPR  
+    #discharge_undertemperature_protection_recovery:
+    #  id: discharge_undertemperature_protection_recovery
+    #  name: "${name_bms} Discharge undertemperature protection recovery"
+    #  internal: true #Hide control element
+    #END TEST PARAM
+    
+    power_tube_overtemperature_protection:
+      id: power_tube_overtemperature_protection
+      name: "${name_bms} Power tube overtemperature protection"
+      internal: true #Hide control element
+    power_tube_overtemperature_protection_recovery:
+      id: power_tube_overtemperature_protection_recovery
+      name: "${name_bms} Power tube overtemperature protection recovery"
+      internal: true #Hide control element
+    discharge_precharge_time:
+      id: discharge_precharge_time
+      name: "${name_bms} Discharge precharge time"
+      internal: true #Hide control element
+    heating_start_temperature:
+      id: heating_start_temperature
+      name: "${name_bms} Heating start temperature"
+      internal: true #Hide control element
+    heating_stop_temperature:
+      id: heating_stop_temperature
+      name: "${name_bms} Heating stop temperature"
+      internal: true #Hide control element
 
 select:
+###############################################
+# Inverter
+###############################################
+
   # Output Mode                                        Uint  300 1 R/W 0: Single, 1: Parallel, 2: 3 Phase-P1, 3: 3 Phase-P2, 4: 3 Phase-P3
   # TODO: Check it. Probably make as sensor
 
@@ -1007,25 +1777,25 @@ select:
   # 4: PV-battery-mains (ZEC) [self-generation and self-use]
 
   # TODO: Check this address (I never meet this activity in my invertor)
-#  - platform: modbus_controller
-#    modbus_controller_id: smg0
-#    name: "${name_inverter} 318 aux output priority"
-#    use_write_multiple: true
-#    address: 318
-#    value_type: U_WORD
-#    icon: mdi:cog
-#    entity_category: config
-#    optionsmap:
-      # "Disabled": 0
-      # "PV-Utility-Battery (SUB)": 1
-      # "PV-Battery-Utility (SBU)": 2
-      # "PV-Utility-Battery (SUF)": 3
-      # "Zero Export To CT (ZEC)": 4
-#      "Disabled": 0
-#      "PV-Bat-Uti(on-demand) (SOL)": 1
-#      "PV-Bat-Uti (SBU)": 2
-#      "PV-Uti-Bat (SUB)": 3
-#      "Zero Export To CT (ZEC)": 4
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 318 aux output priority"
+  #  use_write_multiple: true
+  #  address: 318
+  #  value_type: U_WORD
+  #  icon: mdi:cog
+  #  entity_category: config
+  #  optionsmap:
+    #  "Disabled": 0
+    #  "PV-Utility-Battery (SUB)": 1
+    #  "PV-Battery-Utility (SBU)": 2
+    #  "PV-Utility-Battery (SUF)": 3
+    #  "Zero Export To CT (ZEC)": 4
+  #    "Disabled": 0
+  #    "PV-Bat-Uti(on-demand) (SOL)": 1
+  #    "PV-Bat-Uti (SBU)": 2
+  #    "PV-Uti-Bat (SUB)": 3
+  #    "Zero Export To CT (ZEC)": 4
 
   # Auxiliary battery charging priority
   # Uint  319 1 R/W
@@ -1035,24 +1805,24 @@ select:
   # 3: Only PV charging is allowed
 
   # TODO: Check this address (I never meet this activity in my invertor)
-#  - platform: modbus_controller
-#    modbus_controller_id: smg0
-#    name: "${name_inverter} 319 aux battery charging priority"
-#    use_write_multiple: true
-#    address: 319
-#    value_type: U_WORD
-#    icon: mdi:cog
-#    entity_category: config
-#    optionsmap:
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 319 aux battery charging priority"
+  #  use_write_multiple: true
+  #  address: 319
+  #  value_type: U_WORD
+  #  icon: mdi:cog
+  #  entity_category: config
+  #  optionsmap:
       # "Disabled": 0
       # "PV priority (SOF) ": 1
       # "PV and mains at the same level (SNU)": 2
       # "Only PV charging is allowed (OSO)": 3
       # "PV priority meets the remaining output charge (SOR)": 4
-#      "Disabled": 0
-#      "PV (CSO) ": 1
-#      "PV + Uti (SNU)": 2
-#      "PV only (OSO)": 3
+  #    "Disabled": 0
+  #    "PV (CSO) ": 1
+  #    "PV + Uti (SNU)": 2
+  #    "PV only (OSO)": 3
 
   # Battery Type                                                 Uint  322 1 R/W
   - platform: modbus_controller
@@ -1102,7 +1872,15 @@ select:
       "Local turn-on only": 1
       "Remote turn-on only": 2
 
+###############################################
+# Bms
+###############################################
+
 switch:
+###############################################
+# Inverter
+###############################################
+
   # Custom reset
   # Reset Warnings
   - platform: modbus_controller
@@ -1136,14 +1914,14 @@ switch:
     icon: mdi:toggle-switch
 
   # Energy-saving mode                                            Uint  307 1 R/W 0: Energy-saving mode is off, 1: Energy-saving mode is on
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} Energy-saving mode"
-  #   use_write_multiple: true
-  #   address: 307
-  #   register_type: holding
-  #   bitmask: 1
-  #   icon: mdi:toggle-switch
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} Energy-saving mode"
+  #  use_write_multiple: true
+  #  address: 307
+  #  register_type: holding
+  #  bitmask: 1
+  #  icon: mdi:toggle-switch
 
   # Overload automatic restart                                    Uint  308 1 R/W 0: Overload failure will not restart, 1: Automatic restart after overload failure
   - platform: modbus_controller
@@ -1183,15 +1961,15 @@ switch:
 
   # Battery Eq mode is enabled                                    Uint  313 1 R/W 0: Disable, 1: Enable
   # I turned-off this feature
-#  - platform: modbus_controller
-#    modbus_controller_id: smg0
-#    name: "${name_inverter} 313 battery Eq mode is enabled"
-#    use_write_multiple: true
-#    address: 313
-#    register_type: holding
-#    bitmask: 1
-#    icon: mdi:toggle-switch
- ###########################################
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} 313 battery Eq mode is enabled"
+  #  use_write_multiple: true
+  #  address: 313
+  #  register_type: holding
+  #  bitmask: 1
+  #  icon: mdi:toggle-switch
+  ###########################################
 
   # Automatic mains output enable                                Uint   338 1 R/W 0: No AC power output if the power button is not pressed  1: Automatic AC power output if the power button is not pressed
   - platform: modbus_controller
@@ -1205,14 +1983,14 @@ switch:
     icon: mdi:toggle-switch
 
   # Island detection enable                                       Uint  352 1 R/W 0: Disable island detection 1: Enable island detection
-  # - platform: modbus_controller
-  #   modbus_controller_id: smg0
-  #   name: "${name_inverter} Island detection" #TODO: Check what is it
-  #   use_write_multiple: true
-  #   address: 352
-  #   register_type: holding
-  #   bitmask: 1
-  #   icon: mdi:toggle-switch
+  #- platform: modbus_controller
+  #  modbus_controller_id: smg0
+  #  name: "${name_inverter} Island detection" #TODO: Check what is it
+  #  use_write_multiple: true
+  #  address: 352
+  #  register_type: holding
+  #  bitmask: 1
+  #  icon: mdi:toggle-switch
 
   # Remote switch                                                 Uint  420 1 R/W 0: Remote shutdown, 1: Remote turn-on
   - platform: modbus_controller
@@ -1223,8 +2001,44 @@ switch:
     register_type: holding
     bitmask: 1
     icon: mdi:toggle-switch
-    
+###############################################  
+# Bms
+###############################################
+  - platform: jk_bms_ble
+    charging:
+      name: "${name_bms} Charging"
+    discharging:
+      name: "${name_bms} Discharging"
+    balancer:
+      name: "${name_bms} Balancer"
+  # Unnecessary for control and can be unsafe
+  #  emergency:
+  #    name: "${name_bms} Emergency"
+  #  heating:
+  #    name: "${name_bms} Heating"
+  #  disable_temperature_sensors:
+  #    name: "${name_bms} Disable temperature sensors"
+  #  display_always_on:
+  #    name: "${name_bms} Display always on"
+  #  smart_sleep:
+  #    name: "${name_bms} Smart sleep"
+  #  disable_pcl_module:
+  #    name: "${name_bms} Disable pcl module"
+  #  timed_stored_data:
+  #    name: "${name_bms} Timed stored data"
+  #  charging_float_mode:
+  #    name: "${name_bms} Charging float mode"
+
+  - platform: ble_client
+    ble_client_id: client0
+    name: "${name_bms} Enable bluetooth connection"
+    id: ble_client_switch0
+
 text_sensor:
+###############################################
+# Inverter
+###############################################
+
   # Fault code                                                    ULong 100 2 R
   - platform: modbus_controller
     modbus_controller_id: smg0
@@ -1355,4 +2169,18 @@ text_sensor:
         case 6: return std::string("Fault");
       }
       return std::string("Unknown");
-
+  ###############################################
+  # Bms
+  ###############################################
+  - platform: jk_bms_ble
+    errors:
+      name: "${name_bms} Errors"
+    total_runtime_formatted:
+      name: "${name_bms} Total runtime formatted"
+    charge_status:
+      name: "${name_bms} Charge status"
+    software_version:
+      name: "${name_bms} Software version"
+    hardware_version:
+      name: "${name_bms} Hardware version"
+      
