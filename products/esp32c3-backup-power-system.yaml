@@ -1,7 +1,7 @@
 substitutions:
   name: bps #backup power system
-  name_inverter: anenji
-  name_bms: jk-bms-ble
+  name_inverter: inverter
+  name_bms: bms
   device_description: "Backup power system ESP32c3"
   tx_pin: GPIO04
   rx_pin: GPIO03
@@ -815,8 +815,6 @@ sensor:
       name: "${name_bms} Total runtime"
     balancing_current:
       name: "${name_bms} Balancing current"
-    errors_bitmask:
-      name: "${name_bms} Errors bitmask"
     emergency_time_countdown:
       name: "${name_bms} Emergency time countdown"
     charge_status_id:
@@ -1515,7 +1513,7 @@ number:
     balance_trigger_voltage:
       id: balance_trigger_voltage
       name: "${name_bms} Balance trigger voltage"
-      internal: true #Hide control element
+  #    internal: true #Hide control element
     cell_count:
       id: cell_count
       name: "${name_bms} Cell count"
@@ -2005,12 +2003,14 @@ switch:
 # Bms
 ###############################################
   - platform: jk_bms_ble
-    charging:
-      name: "${name_bms} Charging"
-    discharging:
-      name: "${name_bms} Discharging"
-    balancer:
-      name: "${name_bms} Balancer"
+    
+  #  charging:
+  #    name: "${name_bms} Charging"
+  #  discharging:
+  #    name: "${name_bms} Discharging"
+  #  balancer:
+  #    name: "${name_bms} Balancer"
+  
   # Unnecessary for control and can be unsafe
   #  emergency:
   #    name: "${name_bms} Emergency"
@@ -2183,4 +2183,5 @@ text_sensor:
       name: "${name_bms} Software version"
     hardware_version:
       name: "${name_bms} Hardware version"
-      
+    errors_bitmask_hex:
+      name: "${name_bms} Errors bitmask"
